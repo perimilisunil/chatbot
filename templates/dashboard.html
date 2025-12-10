@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Stats Chart -->
+    <div class="card">
+        <h3>Analytics</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <!-- This data comes from app.py -->
+            <canvas id="msgChart" 
+                    data-total="{{ stats.total_messages | default(0) }}" 
+                    data-users="{{ stats.active_users | default(0) }}">
+            </canvas>
+        </div>
+    </div>
+
+    <!-- Upload Knowledge (RAG) -->
+    <div class="card">
+        <h3>Train the Bot</h3>
+        <form action="/admin/upload" method="POST" enctype="multipart/form-data">
+            
+            <!-- OPTION 1: Paste Text -->
+            <label><strong>Option 1: Paste Text</strong></label>
+            <textarea name="knowledge_text" placeholder="Paste article here..." rows="3"></textarea>
+            
+            <div style="margin: 15px 0; border-top: 1px solid #ddd;"></div>
+
+            <!-- OPTION 2: Upload PDF (The Missing Feature) -->
+            <label><strong>Option 2: Upload PDF</strong></label>
+            <br>
+            <input type="file" name="pdf_file" accept=".pdf" style="margin-top: 5px;">
+            
+            <br><br>
+            <button type="submit" style="width: 100%; background-color: #28a745; color: white; padding: 10px; border: none; cursor: pointer;">Add to Knowledge Base</button>
+        </form>
+    </div>
+
+    <!-- Chat Logs with Delete Button -->
+    <div class="card full-width">
+        <h3>Recent Conversations</h3>
+        <table border="1" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 10px;">Time</th>
+                    <th style="padding: 10px;">Role</th>
+                    <th style="padding: 10px;">Message</th>
+                    <th style="padding: 10px;">Action</th> <!-- The Missing Column -->
+                </tr>
+            </thead>
+            <tbody>
+                {% if logs %}
+                    {% for log in logs %}
+                    <tr>
+                        <td style="padding: 10px;">{{ log['timestamp'] }}</td>
+                        <td style="padding: 10px;">
+                            {% if log['role'] == 'user' %}
+                                🔵 User
+                            {% else %}
+                                🤖 Bot
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px;">{{ log['content'] }}</td>
+                        <td style="padding: 10px;">
+                            <!-- The Missing Delete Button -->
+                            <form action="/admin/delete_log/{{ log['id'] }}" method="POST" onsubmit="return confirm('Delete this message permanently?');">
+                                <button type="submit" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer;">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding: 20px;">No conversations yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('msgChart');
+        if (ctx) {
+            const totalMessages = parseInt(ctx.dataset.total);
+            const activeUsers = parseInt(ctx.dataset.users);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Total Messages', 'Active Users'],
+                    datasets: [{
+                        data: [totalMessages, activeUsers], 
+                        backgroundColor: ['#36A2EB', '#FF6384'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

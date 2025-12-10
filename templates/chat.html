@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-box" id="chat-box">
+        <!-- Messages appear here -->
+        <div class="message bot-message">Hello! I'm FitBot. Ask me about your diet or workout.</div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="user-input" placeholder="Ask about fitness..." onkeypress="handleEnter(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

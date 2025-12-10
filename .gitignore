@@ -1,0 +1,15 @@
+# Security: NEVER upload your API keys
+.env
+
+# Dependencies: We don't upload the library code, just requirements.txt
+venv/
+__pycache__/
+
+# Database: We don't upload your local history or vector store
+database.db
+chroma_db/
+*.sqlite3
+
+# OS Junk files
+.DS_Store
+Thumbs.db
