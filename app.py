@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from utils.db_handler import init_db, get_analytics, get_all_logs,delete_chat_log,get_chat_history
 from utils.ai_handler import get_ai_response
-from utils.rag_engine import add_document_to_knowledge
+from utils.rag_engine import add_document_to_knowledge, get_all_documents, delete_document_by_id
 import os
 import uuid
 import pypdf
@@ -77,8 +77,18 @@ def dashboard():
         
     stats = get_analytics()
     logs = get_all_logs()
-    return render_template('dashboard.html', stats=stats, logs=logs)
-
+    
+    # NEW: Fetch what the bot knows
+    knowledge = get_all_documents()
+    
+    return render_template('dashboard.html', stats=stats, logs=logs, knowledge=knowledge)
+@app.route('/admin/delete_knowledge/<doc_id>', methods=['POST'])
+def delete_knowledge(doc_id):
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    delete_document_by_id(doc_id)
+    return redirect('/admin/dashboard')
 @app.route('/admin/upload', methods=['POST'])
 def upload_knowledge():
     if not session.get('is_admin'):

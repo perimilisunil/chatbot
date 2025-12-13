@@ -34,7 +34,43 @@
             <button type="submit" style="width: 100%; background-color: #28a745; color: white; padding: 10px; border: none; cursor: pointer;">Add to Knowledge Base</button>
         </form>
     </div>
-
+<!-- CURRENT KNOWLEDGE BASE (New Section) -->
+    <div class="card full-width">
+        <h3>📚 Current Knowledge Base</h3>
+        <p style="font-size: 0.9rem; color: #666;">These are the text chunks your bot uses to answer questions.</p>
+        
+        <div style="max-height: 300px; overflow-y: auto;">
+            <table border="1" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="padding: 10px; width: 85%;">Content Snippet</th>
+                        <th style="padding: 10px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if knowledge %}
+                        {% for item in knowledge %}
+                        <tr>
+                            <td style="padding: 10px;">
+                                <!-- Show only first 200 characters to keep it clean -->
+                                {{ item.text[:200] }}...
+                            </td>
+                            <td style="padding: 10px; text-align: center;">
+                                <form action="/admin/delete_knowledge/{{ item.id }}" method="POST" onsubmit="return confirm('Remove this fact from memory?');">
+                                    <button type="submit" style="background-color: #ffc107; color: black; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" style="text-align:center; padding: 20px;">The Knowledge Base is empty. Upload a PDF or Text above!</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     <!-- Chat Logs with Delete Button -->
     <div class="card full-width">
         <h3>Recent Conversations</h3>
