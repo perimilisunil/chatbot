@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from utils.rag_engine import search_knowledge
 from utils.db_handler import get_chat_history, log_message
-
+from textblob import TextBlob
 load_dotenv()
 
 # --- Configuration ---
@@ -47,7 +47,9 @@ def get_ai_response(session_id, user_message):
         return "Error: Gemini API Key is missing or invalid. Check your .env file."
 
     # 2. Save User Message to DB
-    log_message(session_id, "user", user_message)
+    blob = TextBlob(user_message)
+    user_sentiment = blob.sentiment.polarity # type: ignore
+    log_message(session_id, "user", user_message,sentiment=user_sentiment)
     
     # 3. Get RAG Context (Search Fitness Knowledge)
     rag_data = search_knowledge(user_message)
@@ -59,8 +61,8 @@ def get_ai_response(session_id, user_message):
     
     for row in history_rows:
         # Convert DB role to Gemini role
-        role = "user" if row['role'] == "user" else "model"
-        history_formatted.append({"role": role, "parts": [{"text": row['content']}]})
+        role = "user" if row.role == "user" else "model"
+        history_formatted.append({"role": role, "parts": [{"text": row.content}]})
     
     # 5. Build the Prompt
     full_prompt = f"Context from Knowledge Base:\n{context_text}\n\nUser Question: {user_message}"
@@ -82,6 +84,6 @@ def get_ai_response(session_id, user_message):
         ai_text = "I'm having trouble connecting to the AI service right now."
         
     # 7. Save AI Response to DB
-    log_message(session_id, "model", ai_text)
+    log_message(session_id, "model", ai_text,sentiment=0)
     
     return ai_text

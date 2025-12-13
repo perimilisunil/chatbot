@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitBot Admin & Chat</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-<head>
-    <!-- ... your other links ... -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- ADD THIS LINE FOR MARKDOWN SUPPORT: -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-</head>
-    <!-- Chart.js for Analytics -->
+    <title>SASSU AI</title>
+    <!-- Tailwind CSS (Modern Framework) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!--Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-    <nav>
-        <div class="logo">💪SASSU - THE TRAINER 💪</div>
-        <div class="links">
-            <a href="/">Chat</a>
-            <a href="/admin/dashboard">Admin Dashboard</a>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+    <!-- Cool Background Gradient -->
+    <div class="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
+
+    <nav class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center z-50 relative">
+        <div class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+            YOUR FITNESSS TRAINER
+        </div>
+        <div>
+            <a href="/" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition">Chat</a>
+            <a href="/admin/dashboard" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition ml-2">Admin Dashboard</a>
         </div>
     </nav>
-    <div class="container">
+    
+    <div class="flex-grow w-full">
         {% block content %}{% endblock %}
     </div>
 </body>

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from utils.db_handler import init_db, get_analytics, get_all_logs,delete_chat_log,get_chat_history
+from utils.db_handler import init_db, get_analytics, get_all_logs,delete_chat_log,get_chat_history,db
 from utils.ai_handler import get_ai_response
 from utils.rag_engine import add_document_to_knowledge, get_all_documents, delete_document_by_id
 import os
@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev_secret_key")
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev_secret")
 
 # Initialize Database
-init_db()
+init_db(app)
 
 # --- Middleware ---
 @app.before_request
@@ -27,18 +27,19 @@ def assign_session():
 def get_history_api():
     session_id = session.get('user_id')
     # Get last 50 messages
-    history = get_chat_history(session_id, limit=50)# type: ignore
+    from utils.db_handler import get_chat_history
+    history = get_chat_history(session_id, limit=50)
     
     # Convert database rows to JSON list
-    # The history comes oldest -> newest, which is perfect for chat
     json_history = []
     for row in history:
         json_history.append({
-            'role': row['role'],
-            'content': row['content']
+            'role': row.role,
+            'content': row.content
         })
         
     return jsonify(json_history)
+    
 # --- Routes ---
 @app.route('/')
 def index():
@@ -74,20 +75,20 @@ def admin_login():
 def dashboard():
     if not session.get('is_admin'):
         return redirect('/admin/login')
-        
+    from utils.db_handler import get_analytics, get_all_logs, get_sentiment_stats # Import those
     stats = get_analytics()
     logs = get_all_logs()
-    
-    # NEW: Fetch what the bot knows
     knowledge = get_all_documents()
+    mood = get_sentiment_stats() # Added for sentiment
+    return render_template('dashboard.html', stats=stats, logs=logs, knowledge=knowledge, mood=mood)
     
-    return render_template('dashboard.html', stats=stats, logs=logs, knowledge=knowledge)
 @app.route('/admin/delete_knowledge/<doc_id>', methods=['POST'])
-def delete_knowledge(doc_id):
+def delete_knowledge(log_id):
     if not session.get('is_admin'):
         return jsonify({'error': 'Unauthorized'}), 401
         
-    delete_document_by_id(doc_id)
+    from utils.db_handler import delete_chat_log
+    delete_chat_log(log_id)
     return redirect('/admin/dashboard')
 @app.route('/admin/upload', methods=['POST'])
 def upload_knowledge():
@@ -104,7 +105,7 @@ def upload_knowledge():
         # Check if user actually selected a file
         if file.filename != '':
             try:
-                # FIX: Read file bytes into memory first
+                
                 # This prevents "Empty File" or "File Pointer" errors
                 file_stream = io.BytesIO(file.read())
                 
@@ -125,7 +126,7 @@ def upload_knowledge():
                     text = (text or "") + "\n\n--- PDF CONTENT ---\n" + pdf_text
 
             except Exception as e:
-                print(f"❌ PDF Error: {e}")
+                print(f"PDF Error: {e}")
                 return f"Error reading PDF: {str(e)}", 500
 
     # 3. Save to RAG
@@ -153,5 +154,5 @@ if __name__ == '__main__':
     try:
         app.run(debug=True, port=5000)
     except Exception as e:
-        print(f"❌ SERVER CRASHED: {e}")
+        print(f" SERVER CRASHED: {e}")
         input("Press Enter to close...") # Keeps window open on crash

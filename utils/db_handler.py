@@ -1,76 +1,73 @@
-import sqlite3
 import os
+from flask import current_app
+from flask_sqlalchemy import SQLAlchemy
 
-DB_NAME = "database.db"
+# 1.  Define SQLAlchemy instance 
+db = SQLAlchemy()
 
-def get_db_connection():
-    """Establishes a connection to the SQLite database with WAL mode enabled."""
-    conn = sqlite3.connect(DB_NAME)
-    # Enable Write-Ahead Logging (WAL) to prevent locking errors with multiple users
-    conn.execute('PRAGMA journal_mode=WAL;')
-    conn.row_factory = sqlite3.Row
-    return conn
+def init_db(app):
+    """Initializes the database using Flask app context."""
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db' 
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  
+    db.init_app(app)   
+    with app.app_context():  
+        db.create_all()  
+    print("Database initialized.")
 
-def init_db():
-    """Initializes the database and creates necessary tables."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Create Chat Logs Table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS chat_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_session_id TEXT,
-            role TEXT,
-            content TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-    print("Database initialized successfully.")
+# --- MODEL DEFINITIONS (The new way to handle tables) ---
+# These are class definitions and must be outside the app context.
+class ChatLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100))
+    role = db.Column(db.String(10))
+    content = db.Column(db.Text)
+    sentiment = db.Column(db.Float, default=0.0)  # Store sentiment
+    timestamp = db.Column(db.DateTime, server_default=db.func.now())  # Auto timestamp
 
-def log_message(session_id, role, content):
-    """Saves a message (User or Bot) to the database."""
-    conn = get_db_connection()
-    conn.execute('INSERT INTO chat_logs (user_session_id, role, content) VALUES (?, ?, ?)',
-                 (session_id, role, content))
-    conn.commit()
-    conn.close()
+# --- Helper Functions (Simplified) ---
 
-def get_chat_history(session_id, limit=30):
-    """Retrieves the last N messages for a specific user session (for AI Context)."""
-    conn = get_db_connection()
-    cursor = conn.execute('''
-        SELECT role, content FROM chat_logs 
-        WHERE user_session_id = ? 
-        ORDER BY id DESC LIMIT ?
-    ''', (session_id, limit))
-    rows = cursor.fetchall()
-    conn.close()
-    return rows[::-1] # Reverse to get chronological order (Oldest -> Newest)
+def log_message(session_id, role, content, sentiment=0.0):
+    """Saves a message with sentiment, using SQLAlchemy."""
+    if current_app:
+        new_log = ChatLog(session_id=session_id, role=role, content=content, sentiment=sentiment)# type: ignore
+        db.session.add(new_log)
+        db.session.commit()
+
+def get_chat_history(session_id, limit=10):
+    """Retrieves chat history with limit."""
+    from flask import current_app # Import inside the function
+    with current_app.app_context():
+        return ChatLog.query.filter_by(session_id=session_id).order_by(ChatLog.id.desc()).limit(limit).all()
 
 def get_analytics():
-    """Returns statistics for the Admin Dashboard."""
-    conn = get_db_connection()
-    # Count total messages
-    total = conn.execute('SELECT COUNT(*) FROM chat_logs').fetchone()[0]
-    # Count unique users
-    users = conn.execute('SELECT COUNT(DISTINCT user_session_id) FROM chat_logs').fetchone()[0]
-    conn.close()
-    return {"total_messages": total, "active_users": users}
+    """Gets basic analytics (counts)."""
+    from flask import current_app
+    with current_app.app_context():
+        total_messages = ChatLog.query.count()
+        active_users = db.session.query(ChatLog.session_id.distinct()).count()
+    return {'total_messages': total_messages, 'active_users': active_users}
+
+def get_sentiment_stats():
+    """Calculates the average sentiment."""
+    from flask import current_app
+    with current_app.app_context():
+        avg_sentiment = db.session.query(db.func.avg(ChatLog.sentiment)).filter_by(role='user').scalar()
+        if avg_sentiment is None: return "Neutral"
+        if avg_sentiment > 0.1: return "Positive"
+        if avg_sentiment < -0.1: return "Negative"
+        return " Neutral"
 
 def get_all_logs():
-    """Fetches the 50 most recent logs for the Admin Dashboard table."""
-    conn = get_db_connection()
-    logs = conn.execute('SELECT * FROM chat_logs ORDER BY id DESC LIMIT 50').fetchall()
-    conn.close()
-    return logs
+    """Fetches all chat logs."""
+    from flask import current_app
+    with current_app.app_context():
+        return ChatLog.query.order_by(ChatLog.id.desc()).limit(50).all()
 
 def delete_chat_log(log_id):
-    """Deletes a specific chat log by ID (Used by Admin Dashboard)."""
-    conn = get_db_connection()
-    conn.execute('DELETE FROM chat_logs WHERE id = ?', (log_id,))
-    conn.commit()
-    conn.close()
+    """Deletes a chat log by its ID."""
+    from flask import current_app
+    with current_app.app_context():
+        log_to_delete = ChatLog.query.get(log_id)
+        if log_to_delete:
+            db.session.delete(log_to_delete)
+            db.session.commit()

@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function() {
+/*document.addEventListener("DOMContentLoaded", function() {
     loadChatHistory();
 });
 
@@ -77,4 +77,4 @@ async function sendMessage() {
         chatBox.innerHTML += `<div class="message bot-message" style="color:red">Connection Error.</div>`;
     }
     chatBox.scrollTop = chatBox.scrollHeight;
-}
+}*/
