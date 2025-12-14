@@ -1,3 +1,6 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from utils.db_handler import init_db, get_analytics, get_all_logs,delete_chat_log,get_chat_history,db
 from utils.ai_handler import get_ai_response
